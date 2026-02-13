@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Read — Apocrypha Concordance</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.5; margin: 20px; }
+    .topbar { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom: 14px; }
+    .topbar a { text-decoration:none; padding:8px 10px; border:1px solid #ccc; border-radius:6px; }
+    .muted { color:#666; }
+    .chapter-title { margin: 10px 0 6px; }
+    .verse { padding: 10px 10px; border-radius: 8px; }
+    .verse + .verse { margin-top: 8px; }
+    .verse .ref { font-weight: 700; margin-bottom: 4px; }
+    .highlight { outline: 3px solid #000; }
+    .error { color: #b00020; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <a href="./">← Back to Search</a>
+    <span id="status" class="muted">Loading…</span>
+  </div>
+
+  <h2 id="title" class="chapter-title"></h2>
+  <div id="content"></div>
+
+<script>
+  // Robust helpers: support different JSON shapes/field names without you needing to edit JSON.
+  function getRef(item) {
+    if (!item) return "";
+    return (item.ref ?? item.reference ?? item.verse ?? item.id ?? item.location ?? "").toString().trim();
+  }
+  function getText(item) {
+    if (!item) return "";
+    return (item.text ?? item.content ?? item.body ?? item.value ?? item.line ?? "").toString();
+  }
+
+  // Parse "Jubilees 1:4" -> {book:"Jubilees", chapter:1, verse:4}
+  function parseRef(refStr) {
+    const s = (refStr || "").trim();
+    // Matches: "Jubilees 1:4" or "Jubilees 1:4-5" (we'll use first verse)
+    const m = s.match(/^(.+?)\s+(\d+)\s*:\s*(\d+)(?:\s*[-–]\s*(\d+))?\s*$/);
+    if (!m) return null;
+    return { book: m[1].trim(), chapter: Number(m[2]), verse: Number(m[3]) };
+  }
+
+  // Build an array of verse objects from either:
+  // - an array of verse items, or
+  // - an object containing an array under common keys.
+  function normalizeData(json) {
+    if (Array.isArray(json)) return json;
+    if (json && Array.isArray(json.verses)) return json.verses;
+    if (json && Array.isArray(json.results)) return json.results;
+    if (json && Array.isArray(json.data)) return json.data;
+    if (json && Array.isArray(json.items)) return json.items;
+    return [];
+  }
+
+  function escHtml(str) {
+    return (str ?? "").toString()
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;");
+  }
+
+  async function main() {
+    const status = document.getElementById("status");
+    const title = document.getElementById("title");
+    const content = document.getElementById("content");
+
+    const params = new URLSearchParams(location.search);
+    const refParam = params.get("ref") || "";
+    const parsed = parseRef(refParam);
+
+    if (!refParam || !parsed) {
+      status.textContent = "";
+      content.innerHTML = `<div class="error">Missing or invalid reference.</div>
+      <div class="muted">Try opening this page from a search result link.</div>`;
+      return;
+    }
+
+    try {
+      const res = await fetch("./jubilees.json", { cache: "no-store" });
+      if (!res.ok) throw new Error("Could not load jubilees.json");
+      const json = await res.json();
+      const items = normalizeData(json);
+
+      // Filter to the same chapter
+      const chapterItems = items.filter(it => {
+        const r = parseRef(getRef(it));
+        return r && r.book.toLowerCase() === parsed.book.toLowerCase() && r.chapter === parsed.chapter;
+      });
+
+      if (!chapterItems.length) {
+        status.textContent = "";
+        content.innerHTML = `<div class="error">Could not find chapter for:</div>
+          <div>${escHtml(refParam)}</div>`;
+        return;
+      }
+
+      // Sort verses numerically
+      chapterItems.sort((a,b) => {
+        const ra = parseRef(getRef(a));
+        const rb = parseRef(getRef(b));
+        return (ra?.verse ?? 0) - (rb?.verse ?? 0);
+      });
+
+      title.textContent = `${parsed.book} ${parsed.chapter}`;
+      status.textContent = `Showing chapter with ${chapterItems.length} verses`;
+
+      // Render
+      const html = chapterItems.map(it => {
+        const r = parseRef(getRef(it));
+        const verseNum = r?.verse ?? "";
+        const id = `v${verseNum}`;
+        const ref = getRef(it);
+        const text = getText(it);
+
+        return `
+          <div class="verse" id="${id}">
+            <div class="ref">${escHtml(ref)}</div>
+            <div class="txt">${escHtml(text)}</div>
+          </div>
+        `;
+      }).join("");
+
+      content.innerHTML = html;
+
+      // Highlight + scroll to the verse
+      const target = document.getElementById(`v${parsed.verse}`);
+      if (target) {
+        target.classList.add("highlight");
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        status.textContent = `Showing ${parsed.book} ${parsed.chapter} (highlighting verse ${parsed.verse})`;
+      } else {
+        status.textContent = `Showing ${parsed.book} ${parsed.chapter} (verse ${parsed.verse} not found in this chapter list)`;
+      }
+
+    } catch (e) {
+      status.textContent = "";
+      content.innerHTML = `<div class="error">Error:</div><div>${escHtml(e.message || String(e))}</div>`;
+    }
+  }
+
+  main();
+</script>
+</body>
+</html>
