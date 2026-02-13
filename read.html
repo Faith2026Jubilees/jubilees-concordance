@@ -110,23 +110,37 @@
       title.textContent = `${parsed.book} ${parsed.chapter}`;
       status.textContent = `Showing chapter with ${chapterItems.length} verses`;
 
-      // Render
-      const html = chapterItems.map(it => {
-        const r = parseRef(getRef(it));
-        const verseNum = r?.verse ?? "";
-        const id = `v${verseNum}`;
-        const ref = getRef(it);
-        const text = getText(it);
+            // Group duplicates that share the same ref (some JSON files store one verse across multiple items)
+      const grouped = new Map();
+
+      for (const it of chapterItems) {
+        const refStr = getRef(it);
+        const r = parseRef(refStr);
+        if (!r) continue;
+
+        const key = `${r.book} ${r.chapter}:${r.verse}`; // normalized key
+        const existing = grouped.get(key) || { book: r.book, chapter: r.chapter, verse: r.verse, ref: key, texts: [] };
+        existing.texts.push(getText(it));
+        grouped.set(key, existing);
+      }
+
+      const groupedVerses = Array.from(grouped.values()).sort((a, b) => a.verse - b.verse);
+
+      // Render grouped verses
+      const html = groupedVerses.map(v => {
+        const id = `v${v.verse}`;
+        const combinedText = (v.texts || []).join(" ").replace(/\s+/g, " ").trim();
 
         return `
           <div class="verse" id="${id}">
-            <div class="ref">${escHtml(ref)}</div>
-            <div class="txt">${escHtml(text)}</div>
+            <div class="ref">${escHtml(v.ref)}</div>
+            <div class="txt">${escHtml(combinedText)}</div>
           </div>
         `;
       }).join("");
 
       content.innerHTML = html;
+
 
       // Highlight + scroll to the verse
       const target = document.getElementById(`v${parsed.verse}`);
