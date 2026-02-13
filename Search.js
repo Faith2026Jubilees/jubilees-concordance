@@ -23,8 +23,10 @@ function searchText() {
   );
 
   const output = results.map(item =>
-    `${item.ref || "(no ref)"}\n${item.text || ""}\n`
-  ).join("\n");
+    `<b><a href="read.html?ref=${encodeURIComponent(item.ref)}">${item.ref || "(no ref)"}</a></b><br>
+     ${item.text || ""}<br><br>`
+  ).join("");
+
 
   document.getElementById("results").textContent = output || "No results found.";
 }
@@ -44,3 +46,4 @@ function exportResults() {
   a.click();
   URL.revokeObjectURL(a.href);
 }
+
