@@ -28,7 +28,8 @@ function searchText() {
   ).join("");
 
 
-  document.getElementById("results").textContent = output || "No results found.";
+  document.getElementById("results").innerHTML = output || "No results found.";
+
 }
 
 function clearSearch() {
@@ -46,4 +47,5 @@ function exportResults() {
   a.click();
   URL.revokeObjectURL(a.href);
 }
+
 
