@@ -18,7 +18,8 @@ Promise.all([
 
 function searchText(// Whole-word search (so "test" won't match "Test." or "testing")
 const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const re = new RegExp(`(^|[^A-Za-z0-9_])${escaped}([^A-Za-z0-9_]|$)`, "i");
+const re = new RegExp(`(^|[^A-Za-z])${escaped}([^A-Za-z]|$)`, "i");
+
 
 const results = data.filter(item => re.test(item.text || ""));
 ) {
