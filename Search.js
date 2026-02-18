@@ -1,14 +1,20 @@
 let data = [];
 
-// Load the JSON data file
-fetch("jubilees.json")
-  .then(r => r.json())
-  .then(json => { data = json; })
-  .catch(err => {
-    console.error("Failed to load Jubilees.json:", err);
-    document.getElementById("results").textContent =
-      "Error: could not load Jubilees.json. Check filename and server.";
-  });
+// Load all books (Jubilees + Jasher + Enoch)
+Promise.all([
+  fetch("jubilees.json").then(r => r.json()),
+  fetch("jasher.json").then(r => r.json()),
+  fetch("enoch.json").then(r => r.json())
+])
+.then(allBooks => {
+  data = allBooks.flat();
+})
+.catch(err => {
+  console.error("Failed to load book files:", err);
+  const el = document.getElementById("results");
+  if (el) el.textContent = "Failed to load book data files.";
+});
+
 
 function searchText() {
   const term = (document.getElementById("searchTerm").value || "").trim().toLowerCase();
@@ -23,13 +29,10 @@ function searchText() {
   );
 
   const output = results.map(item =>
-    `<b><a href="read.html?ref=${encodeURIComponent(item.ref)}">${item.ref || "(no ref)"}</a></b><br>
-     ${item.text || ""}<br><br>`
-  ).join("");
+    `${item.ref || "(no ref)"}\n${item.text || ""}\n`
+  ).join("\n");
 
-
-  document.getElementById("results").innerHTML = output || "No results found.";
-
+  document.getElementById("results").textContent = output || "No results found.";
 }
 
 function clearSearch() {
@@ -47,5 +50,3 @@ function exportResults() {
   a.click();
   URL.revokeObjectURL(a.href);
 }
-
-
