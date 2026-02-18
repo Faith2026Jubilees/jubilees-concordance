@@ -32,20 +32,21 @@ function searchText() {
   }
 
   // Whole-word search for single words; phrase search for multi-word input
-  const isSingleWord = !/\s/.test(termRaw);
-  const escaped = termRaw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = isSingleWord ? new RegExp(`\\b${escaped}\\b`, "i") : null;
+  const isLettersOnly = /^[A-Za-z]+$/.test(termRaw);   // ONLY letters = safe for whole-word boundaries
+const escaped = termRaw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const re = isLettersOnly ? new RegExp(`\\b${escaped}\\b`, "i") : null;
+
 
   const results = data.filter(item => {
     const text = item.text || "";
 
-    if (isSingleWord) {
-      // Special case: if searching "test", don't match "Test." (Testaments abbreviation)
-      if (/^test$/i.test(termRaw) && /\bTest\./.test(text)) return false;
-      return re.test(text);
-    } else {
-      return text.toLowerCase().includes(termRaw.toLowerCase());
-    }
+    iif (isLettersOnly) {
+  return re.test(text);
+} else {
+  // For punctuation searches like "Test." use a normal contains search (case-insensitive)
+  return text.toLowerCase().includes(termRaw.toLowerCase());
+}
+
   });
 
   const output = results.map(item => {
