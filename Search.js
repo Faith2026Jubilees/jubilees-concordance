@@ -40,7 +40,7 @@ const re = isLettersOnly ? new RegExp(`\\b${escaped}\\b`, "i") : null;
   const results = data.filter(item => {
     const text = item.text || "";
 
-    iif (isLettersOnly) {
+    if (isLettersOnly) {
   return re.test(text);
 } else {
   // For punctuation searches like "Test." use a normal contains search (case-insensitive)
