@@ -24,9 +24,12 @@ function searchText() {
   }
 
   // Expecting JSON items shaped like: { "ref": "Jubilees 4:1", "text": "..." }
-  const results = data.filter(item =>
-    (item.text || "").toLowerCase().includes(term)
-  );
+  // Whole-word search (so "test" won't match "Test." or "testing")
+const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const re = new RegExp(`(^|[^A-Za-z0-9_])${escaped}([^A-Za-z0-9_]|$)`, "i");
+
+const results = data.filter(item => re.test(item.text || ""));
+
 
   const output = results.map(item => {
   const book = item.book || "Jubilees";
