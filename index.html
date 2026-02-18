@@ -1,21 +1,38 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Apocrypha Concordance</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Concordance Search</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 24px; max-width: 900px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom: 12px; }
+    input, select, button { padding: 10px 12px; font-size: 16px; }
+    input { flex: 1; min-width: 260px; }
+    #status { color:#555; margin: 8px 0 14px; }
+    .result { padding: 10px 0; border-bottom: 1px solid #eee; }
+    .ref a { font-weight: 700; text-decoration: none; }
+    .ref a:hover { text-decoration: underline; }
+    .text { margin-top: 6px; line-height: 1.35; }
+    mark { padding: 0 2px; }
+  </style>
 </head>
 <body>
-  <h2>Apocrypha Concordance</h2>
+  <h1>Concordance</h1>
 
-  <input type="text" id="searchTerm" placeholder="Enter word or phrase">
-<button onclick="searchText()">Search</button>
-<button onclick="clearSearch()">Clear</button>
-<button onclick="exportResults()">Export Results</button>
+  <div class="row">
+    <input id="searchTerm" type="text" placeholder="Enter word or phrase" />
+    <select id="bookFilter">
+      <option value="ALL">All books</option>
+    </select>
+    <button onclick="searchText()">Search</button>
+    <button onclick="clearSearch()">Clear</button>
+    <button onclick="exportResults()">Export Results</button>
+  </div>
 
+  <div id="status">Loading…</div>
+  <div id="results"></div>
 
-  <pre id="results"></pre>
-
-  <script src="Search.js?v=6"></script>
-
+  <script src="Search.js"></script>
 </body>
 </html>
