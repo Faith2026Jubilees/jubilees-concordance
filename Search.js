@@ -28,9 +28,12 @@ function searchText() {
     (item.text || "").toLowerCase().includes(term)
   );
 
-  const output = results.map(item =>
-  `${item.book} ${item.chapter}:${item.verse}\n${item.text || ""}\n`
-).join("\n");
+  const output = results.map(item => {
+  const book = item.book || "Jubilees";
+  const ref = item.ref || `${book} ${item.chapter}:${item.verse}`;
+  return `${ref}\n${item.text || ""}\n`;
+}).join("\n");
+
 
 document.getElementById("results").textContent = output || "No results found.";
 }
