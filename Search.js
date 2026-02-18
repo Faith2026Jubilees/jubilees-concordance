@@ -29,11 +29,12 @@ function searchText() {
   );
 
   const output = results.map(item =>
-    `${item.ref || "(no ref)"}\n${item.text || ""}\n`
-  ).join("\n");
+  `${item.book} ${item.chapter}:${item.verse}\n${item.text || ""}\n`
+).join("\n");
 
-  document.getElementById("results").textContent = output || "No results found.";
+document.getElementById("results").textContent = output || "No results found.";
 }
+
 
 function clearSearch() {
   document.getElementById("searchTerm").value = "";
