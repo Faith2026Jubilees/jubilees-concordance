@@ -16,12 +16,12 @@ Promise.all([
 });
 
 
-function searchText(// Whole-word search (so "test" won't match "Test." or "testing")
+function searchText(/// Whole-word search: matches "test" but NOT "Test." or "testing"
 const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const re = new RegExp(`(^|[^A-Za-z])${escaped}([^A-Za-z]|$)`, "i");
-
+const re = new RegExp(`(?<![A-Za-z])${escaped}(?![A-Za-z])`, "i");
 
 const results = data.filter(item => re.test(item.text || ""));
+
 ) {
   const term = (document.getElementById("searchTerm").value || "").trim().toLowerCase();
   if (!term) {
