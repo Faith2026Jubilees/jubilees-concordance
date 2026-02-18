@@ -16,7 +16,12 @@ Promise.all([
 });
 
 
-function searchText() {
+function searchText(// Whole-word search (so "test" won't match "Test." or "testing")
+const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const re = new RegExp(`(^|[^A-Za-z0-9_])${escaped}([^A-Za-z0-9_]|$)`, "i");
+
+const results = data.filter(item => re.test(item.text || ""));
+) {
   const term = (document.getElementById("searchTerm").value || "").trim().toLowerCase();
   if (!term) {
     document.getElementById("results").textContent = "Type a word or phrase, then click Search.";
@@ -24,11 +29,7 @@ function searchText() {
   }
 
   // Expecting JSON items shaped like: { "ref": "Jubilees 4:1", "text": "..." }
-  // Whole-word search (so "test" won't match "Test." or "testing")
-const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const re = new RegExp(`(^|[^A-Za-z0-9_])${escaped}([^A-Za-z0-9_]|$)`, "i");
-
-const results = data.filter(item => re.test(item.text || ""));
+  
 
 
   const output = results.map(item => {
