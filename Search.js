@@ -16,32 +16,47 @@ Promise.all([
 });
 
 
-function searchText(/// Whole-word search: matches "test" but NOT "Test." or "testing"
-const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const re = new RegExp(`(?<![A-Za-z])${escaped}(?![A-Za-z])`, "i");
+function searchText() {
+  const resultsEl = document.getElementById("results");
+  const termRaw = (document.getElementById("searchTerm").value || "").trim();
 
-const results = data.filter(item => re.test(item.text || ""));
-
-) {
-  const term = (document.getElementById("searchTerm").value || "").trim().toLowerCase();
-  if (!term) {
-    document.getElementById("results").textContent = "Type a word or phrase, then click Search.";
+  if (!termRaw) {
+    resultsEl.textContent = "Type a word or phrase, then click Search.";
     return;
   }
 
-  // Expecting JSON items shaped like: { "ref": "Jubilees 4:1", "text": "..." }
-  
+  // If data isn't loaded yet, don't show misleading "No results"
+  if (!Array.isArray(data) || data.length === 0) {
+    resultsEl.textContent = "Still loading book data… please try again in a second.";
+    return;
+  }
 
+  // Whole-word search for single words; phrase search for multi-word input
+  const isSingleWord = !/\s/.test(termRaw);
+  const escaped = termRaw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = isSingleWord ? new RegExp(`\\b${escaped}\\b`, "i") : null;
+
+  const results = data.filter(item => {
+    const text = item.text || "";
+
+    if (isSingleWord) {
+      // Special case: if searching "test", don't match "Test." (Testaments abbreviation)
+      if (/^test$/i.test(termRaw) && /\bTest\./.test(text)) return false;
+      return re.test(text);
+    } else {
+      return text.toLowerCase().includes(termRaw.toLowerCase());
+    }
+  });
 
   const output = results.map(item => {
-  const book = item.book || "Jubilees";
-  const ref = item.ref || `${book} ${item.chapter}:${item.verse}`;
-  return `${ref}\n${item.text || ""}\n`;
-}).join("\n");
+    const book = item.book || "Jubilees";
+    const ref = item.ref || `${book} ${item.chapter}:${item.verse}`;
+    return `${ref}\n${item.text || ""}\n`;
+  }).join("\n");
 
-
-document.getElementById("results").textContent = output || "No results found.";
+  resultsEl.textContent = output || "No results found.";
 }
+
 
 
 function clearSearch() {
