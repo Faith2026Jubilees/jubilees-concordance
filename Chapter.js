@@ -7,14 +7,35 @@
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
+
 function escapeRegExp(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+
 function highlightHtml(text, term) {
   if (!term) return escapeHtml(text);
   const safe = escapeHtml(text);
   const re = new RegExp(escapeRegExp(term), "gi");
   return safe.replace(re, (m) => `<mark>${m}</mark>`);
+}
+
+function cleanVerseText(text) {
+  let t = String(text);
+
+  // Fix "3And" -> "3 And"
+  t = t.replace(/\b(\d)([A-Za-z])/g, "$1 $2");
+
+  // Light-touch removal of common editorial/footnote fragments
+  t = t.replace(/\s+\bCf\.\s+[^.]{0,200}\./g, "");
+  t = t.replace(/\s+\bRead\s+[^.]{0,200}\./g, "");
+  t = t.replace(/\s+\bAccording to\s+[^.]{0,240}\./g, "");
+  t = t.replace(/\s+\bText corrupt\.[^.]{0,240}\./g, "");
+  t = t.replace(/\s*\[[^\]]{1,120}\]\s*/g, " ");
+
+  // Cleanup whitespace
+  t = t.replace(/\s+/g, " ").trim();
+
+  return t;
 }
 
 async function safeFetchJson(path, defaultBook) {
@@ -34,17 +55,12 @@ async function safeFetchJson(path, defaultBook) {
 function normalizeVerse(v) {
   const x = { ...v };
 
-  // Fill in book if missing
-  if (!x.book) x.book = x._defaultBook;
-
-  // Support alternate text key names
+  if (!x.book) x.book = x._defaultBook || "Jubilees";
   if (x.text == null && x.content != null) x.text = x.content;
 
-  // Make sure chapter/verse are numbers
   if (x.chapter != null) x.chapter = Number(x.chapter);
   if (x.verse != null) x.verse = Number(x.verse);
 
-  // If chapter/verse missing but ref exists like "Jubilees 1:4"
   const ref = x.ref || x.reference || x.id || x.verseRef || "";
   if (
     (x.chapter == null || Number.isNaN(x.chapter) || x.verse == null || Number.isNaN(x.verse)) &&
@@ -52,14 +68,13 @@ function normalizeVerse(v) {
   ) {
     const m = ref.match(/^\s*([A-Za-z ]+)\s+(\d+)\s*:\s*(\d+)\s*$/);
     if (m) {
-      if (!x.book) x.book = m[1].trim();
+      x.book = x.book || m[1].trim();
       if (x.chapter == null || Number.isNaN(x.chapter)) x.chapter = Number(m[2]);
       if (x.verse == null || Number.isNaN(x.verse)) x.verse = Number(m[3]);
     }
   }
 
-  // Safety defaults
-  if (!x.book) x.book = "Unknown";
+  if (!x.book) x.book = "Jubilees";
   if (x.chapter == null || Number.isNaN(x.chapter)) x.chapter = 0;
   if (x.verse == null || Number.isNaN(x.verse)) x.verse = 0;
   if (x.text == null) x.text = "";
@@ -67,21 +82,9 @@ function normalizeVerse(v) {
   return x;
 }
 
-// helper functions here
-function escapeHtml(...) { ... }
-function escapeRegExp(...) { ... }
-function highlightHtml(...) { ... }
-
-function cleanVerseText(text) {
-  // <-- paste the whole Step 2 function here
-}
-
 (async function init() {
   const params = new URLSearchParams(location.search);
-  ...
 
-
-  // book param should be present, but fallback to Jubilees to be safe
   const book = params.get("book") || "Jubilees";
   const chapter = Number(params.get("chapter") || "0");
   const verseToHighlight = Number(params.get("verse") || "0");
@@ -101,7 +104,7 @@ function cleanVerseText(text) {
   const data = [...jubileesRaw, ...jasherRaw, ...enochRaw].map(normalizeVerse);
 
   const verses = data
-    .filter(v => (v.book || "") === book && Number(v.chapter) === chapter)
+    .filter(v => (v.book || "Jubilees") === book && Number(v.chapter) === chapter)
     .sort((a, b) => Number(a.verse) - Number(b.verse));
 
   if (verses.length === 0) {
@@ -119,11 +122,11 @@ function cleanVerseText(text) {
     if (Number(v.verse) === verseToHighlight) div.classList.add("hit");
 
     const cleaned = cleanVerseText(v.text || "");
-div.innerHTML = `<span class="vnum">${v.verse}</span>${highlightHtml(cleaned, term)}`;
-
+    div.innerHTML = `<span class="vnum">${v.verse}</span>${highlightHtml(cleaned, term)}`;
     frag.appendChild(div);
   }
 
+  chapterEl.textContent = "";
   chapterEl.appendChild(frag);
 
   const target = document.getElementById(`v${verseToHighlight}`);
