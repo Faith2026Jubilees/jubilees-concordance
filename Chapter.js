@@ -20,14 +20,42 @@ function highlightHtml(text, term) {
 }
 
 function cleanVerseText(text, verseNum) {
+  let t = String(text || "");
 
-  let t = String(text);
-  // Remove duplicate verse number at the very start like "26And ..." or "26 And ..."
-  if (verseNum != null) {
+  // Remove duplicate verse number when it appears at:
+  // - start of the text
+  // - start of a new line
+  // - start of a new sentence after punctuation
+  // Examples removed: "26And ...", "\n26And ...", ". 26And ..."
+  if (verseNum != null && verseNum !== 0) {
     const v = String(verseNum);
-    const re = new RegExp("^\\s*" + v + "\\s*(?=[A-Za-z\"'\\(])");
-    t = t.replace(re, "");
+
+    // Normalize newlines for consistent matching
+    t = t.replace(/\r\n/g, "\n");
+
+    // Remove at start or after newline
+    t = t.replace(new RegExp(`(^|\\n)\\s*${v}\\s*(?=[A-Za-z"'(])`, "g"), "$1");
+
+    // Remove after sentence punctuation
+    t = t.replace(new RegExp(`([\\.\\!\\?;:])\\s*${v}\\s*(?=[A-Za-z"'(])`, "g"), "$1 ");
   }
+
+  // Fix "3And" -> "3 And" (general cleanup; doesn't affect verse number we removed)
+  t = t.replace(/\b(\d)([A-Za-z])/g, "$1 $2");
+
+  // Light-touch removal of common editorial/footnote fragments
+  t = t.replace(/\s+\bCf\.\s+[^.]{0,200}\./g, "");
+  t = t.replace(/\s+\bRead\s+[^.]{0,200}\./g, "");
+  t = t.replace(/\s+\bAccording to\s+[^.]{0,240}\./g, "");
+  t = t.replace(/\s+\bText corrupt\.[^.]{0,240}\./g, "");
+  t = t.replace(/\s*\[[^\]]{1,120}\]\s*/g, " ");
+
+  // Collapse whitespace (but keep it readable)
+  t = t.replace(/\s+/g, " ").trim();
+
+  return t;
+}
+
 
 
   // Fix "3And" -> "3 And"
