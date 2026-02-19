@@ -1,17 +1,29 @@
 
 // ===============================
-// Search.js (Stable Version)
+// Search.js (Stable + Highlight)
 // ===============================
 
 let data = [];
 
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, ch => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[ch]));
+}
+
 function cleanText(t) {
   if (t == null) return "";
-  return String(t)
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    .replace(/\s+/g, " ")
-    .trim();
+  return String(t).replace(/\s+/g, " ").trim();
+}
+
+function highlight(text, term) {
+  if (!term) return escapeHtml(text);
+  const safeText = escapeHtml(text);
+  const safeTerm = escapeHtml(term);
+
+  // Highlight case-insensitively
+  const re = new RegExp(safeTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "ig");
+  return safeText.replace(re, m => `<mark>${m}</mark>`);
 }
 
 async function safeFetchJson(path, defaultBook) {
@@ -21,6 +33,9 @@ async function safeFetchJson(path, defaultBook) {
   const arr = Array.isArray(json) ? json : [];
   for (const v of arr) {
     if (!v.book) v.book = defaultBook;
+    v.chapter = Number(v.chapter);
+    v.verse = Number(v.verse);
+    v.text = cleanText(v.text);
   }
   return arr;
 }
@@ -49,16 +64,19 @@ function makeLink(v) {
 }
 
 function searchText() {
-  const term = (document.getElementById("searchTerm").value || "").trim().toLowerCase();
+  const input = document.getElementById("searchTerm");
   const resultsEl = document.getElementById("results");
   if (!resultsEl) return;
+
+  const termRaw = (input?.value || "").trim();
+  const term = termRaw.toLowerCase();
 
   if (!term) {
     resultsEl.textContent = "Type a word or phrase, then click Search.";
     return;
   }
 
-  const matches = data.filter(v => cleanText(v.text).toLowerCase().includes(term));
+  const matches = data.filter(v => (v.text || "").toLowerCase().includes(term));
 
   resultsEl.innerHTML = "";
 
@@ -72,11 +90,12 @@ function searchText() {
     row.className = "result";
 
     const ref = makeLink(v);
-    const txt = document.createElement("span");
-    txt.textContent = " — " + cleanText(v.text);
+
+    const snippet = document.createElement("span");
+    snippet.innerHTML = " — " + highlight(v.text, termRaw);
 
     row.appendChild(ref);
-    row.appendChild(txt);
+    row.appendChild(snippet);
     resultsEl.appendChild(row);
   }
 }
@@ -86,22 +105,6 @@ function clearSearch() {
   const resultsEl = document.getElementById("results");
   if (input) input.value = "";
   if (resultsEl) resultsEl.innerHTML = "";
-}
-
-function exportResults() {
-  const resultsEl = document.getElementById("results");
-  if (!resultsEl) return;
-
-  const text = resultsEl.innerText || "";
-  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "search_results.txt";
-  a.click();
-
-  URL.revokeObjectURL(url);
 }
 
 document.addEventListener("DOMContentLoaded", loadAllBooks);
