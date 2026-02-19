@@ -107,14 +107,16 @@ function currentBookFilter() {
 }
 
 function makeChapterLink(v, term) {
+  const bookName = v.book || v._defaultBook || "Jubilees";
   const params = new URLSearchParams({
-    book: v.book,
+    book: bookName,
     chapter: String(v.chapter),
     verse: String(v.verse),
     term: term || ""
   });
   return `chapter.html?${params.toString()}`;
 }
+
 
 function renderResults(matches, term) {
   const resultsEl = document.getElementById("results");
@@ -136,7 +138,9 @@ function renderResults(matches, term) {
 
     const a = document.createElement("a");
     a.href = makeChapterLink(v, term);
-    a.textContent = `${v.book} ${v.chapter}:${v.verse}`;
+    const bookName = v.book || v._defaultBook || "Jubilees";
+a.textContent = `${bookName} ${v.chapter}:${v.verse}`;
+
     refDiv.appendChild(a);
 
     const textDiv = document.createElement("div");
