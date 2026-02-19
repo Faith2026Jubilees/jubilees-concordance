@@ -19,8 +19,16 @@ function highlightHtml(text, term) {
   return safe.replace(re, (m) => `<mark>${m}</mark>`);
 }
 
-function cleanVerseText(text) {
+function cleanVerseText(text, verseNum) {
+
   let t = String(text);
+  // Remove duplicate verse number at the very start like "26And ..." or "26 And ..."
+  if (verseNum != null) {
+    const v = String(verseNum);
+    const re = new RegExp("^\\s*" + v + "\\s*(?=[A-Za-z\"'\\(])");
+    t = t.replace(re, "");
+  }
+
 
   // Fix "3And" -> "3 And"
   t = t.replace(/\b(\d)([A-Za-z])/g, "$1 $2");
@@ -121,7 +129,8 @@ function normalizeVerse(v) {
 
     if (Number(v.verse) === verseToHighlight) div.classList.add("hit");
 
-    const cleaned = cleanVerseText(v.text || "");
+    const cleaned = cleanVerseText(v.text || "", v.verse);
+
     div.innerHTML = `<span class="vnum">${v.verse}</span>${highlightHtml(cleaned, term)}`;
     frag.appendChild(div);
   }
