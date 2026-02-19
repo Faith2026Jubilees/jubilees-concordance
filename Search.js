@@ -220,7 +220,7 @@ function exportResults() {
   if (statusEl) statusEl.textContent = "Loading books…";
 
   const [jubileesRaw, jasherRaw, enochRaw] = await Promise.all([
-    safeFetchJson("jubilees.json", "Jubilees"),
+    safeFetchJson("jubilees_clean.json", "Jubilees")
     safeFetchJson("jasher.json", "Jasher"),
     safeFetchJson("enoch.json", "Enoch")
   ]);
