@@ -41,7 +41,16 @@ async function safeFetchJson(path, defaultBook) {
 }
 
 async function loadChapter() {
-  const resultsDiv = document.getElementById("chapterContent");
+  const resultsDiv =
+    document.getElementById("chapterContent") ||
+    document.getElementById("results") ||
+    document.getElementById("content");
+
+  if (!resultsDiv) {
+    console.error("Chapter page is missing a content div. Expected id='chapterContent' or id='results'.");
+    return;
+  }
+
   resultsDiv.textContent = "Loading...";
 
   const { book, chapter, verse } = getQueryParams();
