@@ -132,7 +132,7 @@ function normalizeVerse(v) {
   titleEl.textContent = `${book} ${chapter}`;
 
   const [jubileesRaw, jasherRaw, enochRaw] = await Promise.all([
-    safeFetchJson("jubilees.json", "Jubilees"),
+    safeFetchJson("jubilees_clean.json", "Jubilees"),
     safeFetchJson("jasher.json", "Jasher"),
     safeFetchJson("enoch.json", "Enoch")
   ]);
