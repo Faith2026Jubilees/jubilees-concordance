@@ -67,8 +67,19 @@ function normalizeVerse(v) {
   return x;
 }
 
+// helper functions here
+function escapeHtml(...) { ... }
+function escapeRegExp(...) { ... }
+function highlightHtml(...) { ... }
+
+function cleanVerseText(text) {
+  // <-- paste the whole Step 2 function here
+}
+
 (async function init() {
   const params = new URLSearchParams(location.search);
+  ...
+
 
   // book param should be present, but fallback to Jubilees to be safe
   const book = params.get("book") || "Jubilees";
@@ -107,7 +118,9 @@ function normalizeVerse(v) {
 
     if (Number(v.verse) === verseToHighlight) div.classList.add("hit");
 
-    div.innerHTML = `<span class="vnum">${v.verse}</span>${highlightHtml(v.text, term)}`;
+    const cleaned = cleanVerseText(v.text || "");
+div.innerHTML = `<span class="vnum">${v.verse}</span>${highlightHtml(cleaned, term)}`;
+
     frag.appendChild(div);
   }
 
