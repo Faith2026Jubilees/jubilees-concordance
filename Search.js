@@ -1,6 +1,5 @@
-
 // ===============================
-// Search.js (Neon word highlight + stable globals)
+// Search.js (Stable + Book filter + Chapter dropdown)
 // ===============================
 
 let data = [];
@@ -22,60 +21,13 @@ function cleanText(t) {
 }
 
 function highlightHits(text, termRaw) {
-  const textSafe = escapeHtml(text);
+  const safeText = escapeHtml(text);
   const term = (termRaw || "").trim();
-  if (!term) return textSafe;
+  if (!term) return safeText;
 
   const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const re = new RegExp(escapedTerm, "ig");
-  return textSafe.replace(re, m => `<mark class="hit">${escapeHtml(m)}</mark>`);
-}
-function populateChaptersForBook(book) {
-  const sel = document.getElementById("chapterSelect");
-  if (!sel) return;
-
-  // Find max chapter available for that book from loaded data
-  const chapters = new Set(
-    data
-      .filter(v => (book === "ALL" ? true : v.book === book))
-      .map(v => Number(v.chapter))
-      .filter(n => Number.isFinite(n) && n > 0)
-  );
-
-  const sorted = [...chapters].sort((a, b) => a - b);
-
-  sel.innerHTML = "";
-  if (!sorted.length) {
-    const opt = document.createElement("option");
-    opt.value = "";
-    opt.textContent = "—";
-    sel.appendChild(opt);
-    return;
-  }
-
-  for (const ch of sorted) {
-    const opt = document.createElement("option");
-    opt.value = String(ch);
-    opt.textContent = String(ch);
-    sel.appendChild(opt);
-  }
-}
-
-function goToChapter() {
-  const book = (document.getElementById("bookFilter")?.value || "ALL");
-  const chapter = (document.getElementById("chapterSelect")?.value || "").trim();
-
-  if (book === "ALL") {
-    alert("Please choose a Book first.");
-    return;
-  }
-  if (!chapter) {
-    alert("Please choose a Chapter.");
-    return;
-  }
-
-  window.location.href =
-    `chapter.html?book=${encodeURIComponent(book)}&chapter=${encodeURIComponent(chapter)}`;
+  return safeText.replace(re, m => `<mark class="hit">${escapeHtml(m)}</mark>`);
 }
 
 async function safeFetchJson(path, defaultBook) {
@@ -92,9 +44,40 @@ async function safeFetchJson(path, defaultBook) {
   return arr;
 }
 
+function populateChaptersForBook(book) {
+  const sel = $("chapterSelect");
+  if (!sel) return;
+
+  const chapters = new Set(
+    data
+      .filter(v => book === "ALL" ? true : v.book === book)
+      .map(v => Number(v.chapter))
+      .filter(n => Number.isFinite(n) && n > 0)
+  );
+
+  const sorted = [...chapters].sort((a, b) => a - b);
+
+  sel.innerHTML = "";
+
+  if (!sorted.length) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "—";
+    sel.appendChild(opt);
+    return;
+  }
+
+  for (const ch of sorted) {
+    const opt = document.createElement("option");
+    opt.value = String(ch);
+    opt.textContent = String(ch);
+    sel.appendChild(opt);
+  }
+}
+
 async function loadAllBooks() {
   const resultsEl = $("results");
-  if (resultsEl) resultsEl.textContent = "Loading…";
+  if (resultsEl) resultsEl.textContent = "";
 
   try {
     const [jub, jas, eno] = await Promise.all([
@@ -105,17 +88,18 @@ async function loadAllBooks() {
 
     data = [...jub, ...jas, ...eno];
     isLoaded = true;
-// Initialize chapter dropdown to the current book selection
-const bookSel = document.getElementById("bookFilter");
-populateChaptersForBook(bookSel ? bookSel.value : "Jubilees");
 
-const bookSel = document.getElementById("bookFilter");
-if (bookSel) {
-  bookSel.addEventListener("change", () => populateChaptersForBook(bookSel.value));
-}
-
-    if (resultsEl) resultsEl.textContent = ""; // clear "Loading…"
     console.log("✅ Loaded verses:", data.length);
+
+    // Hook up the book dropdown to refresh chapters
+    const bookSel = $("bookFilter");
+    if (bookSel) {
+      // Populate chapters immediately
+      populateChaptersForBook(bookSel.value || "ALL");
+
+      // Update chapters whenever book changes
+      bookSel.addEventListener("change", () => populateChaptersForBook(bookSel.value));
+    }
   } catch (err) {
     console.error("❌ Failed loading JSON:", err);
     if (resultsEl) resultsEl.textContent = "Failed to load book data files.";
@@ -141,7 +125,8 @@ function searchText() {
 
   const termRaw = (input?.value || "").trim();
   const term = termRaw.toLowerCase();
-const bookFilter = (document.getElementById("bookFilter")?.value || "ALL");
+
+  const bookFilter = ($("bookFilter")?.value || "ALL");
 
   if (!term) {
     resultsEl.textContent = "Type a word or phrase, then click Search.";
@@ -154,10 +139,10 @@ const bookFilter = (document.getElementById("bookFilter")?.value || "ALL");
   }
 
   const matches = data.filter(v => {
-  if (!(v.text || "").toLowerCase().includes(term)) return false;
-  if (bookFilter === "ALL") return true;
-  return (v.book || "") === bookFilter;
-});
+    if (!(v.text || "").toLowerCase().includes(term)) return false;
+    if (bookFilter === "ALL") return true;
+    return v.book === bookFilter;
+  });
 
   resultsEl.innerHTML = "";
 
@@ -189,10 +174,43 @@ function clearSearch() {
   if (resultsEl) resultsEl.innerHTML = "";
 }
 
-// 👇 CRITICAL: make functions available to onclick= handlers even if script is type="module"
+function exportResults() {
+  const resultsEl = $("results");
+  if (!resultsEl) return;
+
+  const text = resultsEl.innerText || "";
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "search_results.txt";
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+function goToChapter() {
+  const book = ($("bookFilter")?.value || "ALL");
+  const chapter = ($("chapterSelect")?.value || "").trim();
+
+  if (book === "ALL") {
+    alert("Please choose a Book first.");
+    return;
+  }
+  if (!chapter) {
+    alert("Please choose a Chapter.");
+    return;
+  }
+
+  window.location.href =
+    `chapter.html?book=${encodeURIComponent(book)}&chapter=${encodeURIComponent(chapter)}`;
+}
+
+// Make functions available to onclick handlers
 window.searchText = searchText;
 window.clearSearch = clearSearch;
+window.exportResults = exportResults;
 window.goToChapter = goToChapter;
 
-// Load data
 document.addEventListener("DOMContentLoaded", loadAllBooks);
