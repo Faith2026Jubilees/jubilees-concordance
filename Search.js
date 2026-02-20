@@ -30,6 +30,53 @@ function highlightHits(text, termRaw) {
   const re = new RegExp(escapedTerm, "ig");
   return textSafe.replace(re, m => `<mark class="hit">${escapeHtml(m)}</mark>`);
 }
+function populateChaptersForBook(book) {
+  const sel = document.getElementById("chapterSelect");
+  if (!sel) return;
+
+  // Find max chapter available for that book from loaded data
+  const chapters = new Set(
+    data
+      .filter(v => (book === "ALL" ? true : v.book === book))
+      .map(v => Number(v.chapter))
+      .filter(n => Number.isFinite(n) && n > 0)
+  );
+
+  const sorted = [...chapters].sort((a, b) => a - b);
+
+  sel.innerHTML = "";
+  if (!sorted.length) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "—";
+    sel.appendChild(opt);
+    return;
+  }
+
+  for (const ch of sorted) {
+    const opt = document.createElement("option");
+    opt.value = String(ch);
+    opt.textContent = String(ch);
+    sel.appendChild(opt);
+  }
+}
+
+function goToChapter() {
+  const book = (document.getElementById("bookFilter")?.value || "ALL");
+  const chapter = (document.getElementById("chapterSelect")?.value || "").trim();
+
+  if (book === "ALL") {
+    alert("Please choose a Book first.");
+    return;
+  }
+  if (!chapter) {
+    alert("Please choose a Chapter.");
+    return;
+  }
+
+  window.location.href =
+    `chapter.html?book=${encodeURIComponent(book)}&chapter=${encodeURIComponent(chapter)}`;
+}
 
 async function safeFetchJson(path, defaultBook) {
   const r = await fetch(path, { cache: "no-store" });
@@ -58,6 +105,14 @@ async function loadAllBooks() {
 
     data = [...jub, ...jas, ...eno];
     isLoaded = true;
+// Initialize chapter dropdown to the current book selection
+const bookSel = document.getElementById("bookFilter");
+populateChaptersForBook(bookSel ? bookSel.value : "Jubilees");
+
+const bookSel = document.getElementById("bookFilter");
+if (bookSel) {
+  bookSel.addEventListener("change", () => populateChaptersForBook(bookSel.value));
+}
 
     if (resultsEl) resultsEl.textContent = ""; // clear "Loading…"
     console.log("✅ Loaded verses:", data.length);
@@ -137,6 +192,7 @@ function clearSearch() {
 // 👇 CRITICAL: make functions available to onclick= handlers even if script is type="module"
 window.searchText = searchText;
 window.clearSearch = clearSearch;
+window.goToChapter = goToChapter;
 
 // Load data
 document.addEventListener("DOMContentLoaded", loadAllBooks);
