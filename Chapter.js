@@ -1,29 +1,18 @@
-
- // ===============================
-// Chapter.js (Clean Stable Version)
+// ===============================
+// Chapter.js (Powder-blue target verse + robust)
 // ===============================
 
 function getQueryParams() {
   const params = new URLSearchParams(window.location.search);
-  return {
-    book: params.get("book"),
-    chapter: parseInt(params.get("chapter"), 10),
-    verse: parseInt(params.get("verse"), 10)
-  };
+  const book = params.get("book");
+  const chapter = Number(params.get("chapter"));
+  const verse = Number(params.get("verse"));
+  return { book, chapter, verse };
 }
 
 function cleanText(t) {
   if (t == null) return "";
-
-  t = String(t)
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    .replace(/\[[^\]]{1,250}\]/g, " ")
-    .replace(/\*/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  return t;
+  return String(t).replace(/\s+/g, " ").trim();
 }
 
 async function safeFetchJson(path, defaultBook) {
@@ -32,7 +21,12 @@ async function safeFetchJson(path, defaultBook) {
     if (!r.ok) throw new Error(`${path} HTTP ${r.status}`);
     const json = await r.json();
     const arr = Array.isArray(json) ? json : [];
-    for (const v of arr) v._defaultBook = defaultBook;
+    for (const v of arr) {
+      if (!v.book) v.book = defaultBook;
+      v.chapter = Number(v.chapter);
+      v.verse = Number(v.verse);
+      v.text = cleanText(v.text);
+    }
     return arr;
   } catch (e) {
     console.warn("Skipping:", path, e);
@@ -43,17 +37,20 @@ async function safeFetchJson(path, defaultBook) {
 async function loadChapter() {
   const resultsDiv =
     document.getElementById("chapterContent") ||
-    document.getElementById("results") ||
-    document.getElementById("content");
+    document.getElementById("results");
 
   if (!resultsDiv) {
-    console.error("Chapter page is missing a content div. Expected id='chapterContent' or id='results'.");
+    console.error("Missing chapter container div (need id='chapterContent' or id='results').");
     return;
   }
 
-  resultsDiv.textContent = "Loading...";
+  resultsDiv.textContent = "Loading…";
 
   const { book, chapter, verse } = getQueryParams();
+  if (!book || !chapter) {
+    resultsDiv.textContent = "Missing URL info (book/chapter).";
+    return;
+  }
 
   const [jubileesRaw, jasherRaw, enochRaw] = await Promise.all([
     safeFetchJson("jubilees_clean.json", "Jubilees"),
@@ -64,12 +61,12 @@ async function loadChapter() {
   const allData = [...jubileesRaw, ...jasherRaw, ...enochRaw];
 
   const chapterData = allData.filter(v =>
-    (v.book || v._defaultBook) === book &&
+    v.book === book &&
     v.chapter === chapter
   );
 
   if (!chapterData.length) {
-    resultsDiv.textContent = "Chapter not found.";
+    resultsDiv.textContent = `Chapter not found: ${book} ${chapter}`;
     return;
   }
 
@@ -81,11 +78,7 @@ async function loadChapter() {
     const verseDiv = document.createElement("div");
     verseDiv.className = "verse";
 
-    if (v.verse === verse) {
-      verseDiv.style.backgroundColor = "#ffffcc";
-      verseDiv.style.padding = "6px";
-      verseDiv.style.borderRadius = "4px";
-    }
+    if (v.verse === verse) verseDiv.classList.add("verseTarget");
 
     verseDiv.innerHTML = `<strong>${book} ${chapter}:${v.verse}</strong> ${cleanText(v.text)}`;
     resultsDiv.appendChild(verseDiv);
