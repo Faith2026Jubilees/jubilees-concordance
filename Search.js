@@ -86,6 +86,7 @@ function searchText() {
 
   const termRaw = (input?.value || "").trim();
   const term = termRaw.toLowerCase();
+const bookFilter = (document.getElementById("bookFilter")?.value || "ALL");
 
   if (!term) {
     resultsEl.textContent = "Type a word or phrase, then click Search.";
@@ -97,7 +98,11 @@ function searchText() {
     return;
   }
 
-  const matches = data.filter(v => (v.text || "").toLowerCase().includes(term));
+  const matches = data.filter(v => {
+  if (!(v.text || "").toLowerCase().includes(term)) return false;
+  if (bookFilter === "ALL") return true;
+  return (v.book || "") === bookFilter;
+});
 
   resultsEl.innerHTML = "";
 
