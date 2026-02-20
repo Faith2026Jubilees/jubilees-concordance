@@ -62,6 +62,8 @@ async function loadChapter() {
   resultsDiv.textContent = "Loading…";
 
   const { book, chapter, verse, q } = getQueryParams();
+const titleEl = document.getElementById("title");
+if (titleEl) titleEl.textContent = `${book} ${chapter}`;
   if (!book || !chapter) {
     resultsDiv.textContent = "Missing URL info (book/chapter).";
     return;
