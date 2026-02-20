@@ -78,6 +78,8 @@ function populateChaptersForBook(book) {
 async function loadAllBooks() {
   const resultsEl = $("results");
   if (resultsEl) resultsEl.textContent = "";
+const statusEl = $("status");
+if (statusEl) statusEl.textContent = "";
 
   try {
     const [jub, jas, eno] = await Promise.all([
@@ -145,11 +147,14 @@ function searchText() {
   });
 
   resultsEl.innerHTML = "";
+const statusEl = $("status");
+if (statusEl) {
+  statusEl.textContent = `${matches.length} result${matches.length === 1 ? "" : "s"} found`;
+}
 
   if (!matches.length) {
-    resultsEl.textContent = "No results found.";
-    return;
-  }
+  return;
+}
 
   for (const v of matches.slice(0, 500)) {
     const row = document.createElement("div");
@@ -170,8 +175,11 @@ function searchText() {
 function clearSearch() {
   const input = $("searchTerm");
   const resultsEl = $("results");
+  const statusEl = $("status");
+
   if (input) input.value = "";
   if (resultsEl) resultsEl.innerHTML = "";
+  if (statusEl) statusEl.textContent = "";
 }
 
 function exportResults() {
