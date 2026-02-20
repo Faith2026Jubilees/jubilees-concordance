@@ -31,6 +31,13 @@ mark.hit { background: #ffff00; padding: 0 2px; }   /* neon yellow */
     <button onclick="searchText()">Search</button>
     <button onclick="clearSearch()">Clear</button>
     <button onclick="exportResults()">Export Results</button>
+<label for="bookFilter" style="margin-right:8px;">Book:</label>
+<select id="bookFilter">
+  <option value="ALL">All</option>
+  <option value="Jubilees">Jubilees</option>
+  <option value="Jasher">Jasher</option>
+  <option value="Enoch">Enoch</option>
+</select>
   </div>
 
   <div id="status">Loading…</div>
