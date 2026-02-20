@@ -101,8 +101,7 @@ async function loadChapter() {
 
 resultsDiv.appendChild(verseDiv);
   }
-const titleEl = document.getElementById("title");
-if (titleEl) titleEl.textContent = `${book} ${chapter}`;
+
 }
 
 document.addEventListener("DOMContentLoaded", loadChapter);
