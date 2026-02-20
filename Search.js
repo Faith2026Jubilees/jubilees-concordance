@@ -67,9 +67,13 @@ async function loadAllBooks() {
   }
 }
 
-function makeLink(v) {
+function makeLink(v, termRaw) {
   const a = document.createElement("a");
-  a.href = `chapter.html?book=${encodeURIComponent(v.book)}&chapter=${v.chapter}&verse=${v.verse}`;
+  a.href =
+    `chapter.html?book=${encodeURIComponent(v.book)}` +
+    `&chapter=${v.chapter}` +
+    `&verse=${v.verse}` +
+    `&q=${encodeURIComponent(termRaw || "")}`;
   a.textContent = `${v.book} ${v.chapter}:${v.verse}`;
   a.className = "refLink";
   return a;
@@ -106,7 +110,7 @@ function searchText() {
     const row = document.createElement("div");
     row.className = "resultRow";
 
-    const ref = makeLink(v);
+    const ref = makeLink(v, termRaw);
 
     const snippet = document.createElement("span");
     snippet.className = "snippet";
