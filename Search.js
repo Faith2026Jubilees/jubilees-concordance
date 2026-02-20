@@ -1,9 +1,14 @@
 
 // ===============================
-// Search.js (Stable + Highlight)
+// Search.js (Neon word highlight + stable globals)
 // ===============================
 
 let data = [];
+let isLoaded = false;
+
+function $(id) {
+  return document.getElementById(id);
+}
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, ch => ({
@@ -16,14 +21,14 @@ function cleanText(t) {
   return String(t).replace(/\s+/g, " ").trim();
 }
 
-function highlight(text, term) {
-  if (!term) return escapeHtml(text);
-  const safeText = escapeHtml(text);
-  const safeTerm = escapeHtml(term);
+function highlightHits(text, termRaw) {
+  const textSafe = escapeHtml(text);
+  const term = (termRaw || "").trim();
+  if (!term) return textSafe;
 
-  // Highlight case-insensitively
-  const re = new RegExp(safeTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "ig");
-  return safeText.replace(re, m => `<mark>${m}</mark>`);
+  const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(escapedTerm, "ig");
+  return textSafe.replace(re, m => `<mark class="hit">${escapeHtml(m)}</mark>`);
 }
 
 async function safeFetchJson(path, defaultBook) {
@@ -41,18 +46,24 @@ async function safeFetchJson(path, defaultBook) {
 }
 
 async function loadAllBooks() {
+  const resultsEl = $("results");
+  if (resultsEl) resultsEl.textContent = "Loading…";
+
   try {
     const [jub, jas, eno] = await Promise.all([
       safeFetchJson("jubilees_clean.json", "Jubilees"),
       safeFetchJson("jasher.json", "Jasher"),
       safeFetchJson("enoch.json", "Enoch")
     ]);
+
     data = [...jub, ...jas, ...eno];
-    console.log("Loaded verses:", data.length);
+    isLoaded = true;
+
+    if (resultsEl) resultsEl.textContent = ""; // clear "Loading…"
+    console.log("✅ Loaded verses:", data.length);
   } catch (err) {
-    console.error("Failed to load JSON files:", err);
-    const el = document.getElementById("results");
-    if (el) el.textContent = "Failed to load book data files.";
+    console.error("❌ Failed loading JSON:", err);
+    if (resultsEl) resultsEl.textContent = "Failed to load book data files.";
   }
 }
 
@@ -60,12 +71,13 @@ function makeLink(v) {
   const a = document.createElement("a");
   a.href = `chapter.html?book=${encodeURIComponent(v.book)}&chapter=${v.chapter}&verse=${v.verse}`;
   a.textContent = `${v.book} ${v.chapter}:${v.verse}`;
+  a.className = "refLink";
   return a;
 }
 
 function searchText() {
-  const input = document.getElementById("searchTerm");
-  const resultsEl = document.getElementById("results");
+  const input = $("searchTerm");
+  const resultsEl = $("results");
   if (!resultsEl) return;
 
   const termRaw = (input?.value || "").trim();
@@ -73,6 +85,11 @@ function searchText() {
 
   if (!term) {
     resultsEl.textContent = "Type a word or phrase, then click Search.";
+    return;
+  }
+
+  if (!isLoaded) {
+    resultsEl.textContent = "Loading… (try again in a moment)";
     return;
   }
 
@@ -87,12 +104,13 @@ function searchText() {
 
   for (const v of matches.slice(0, 500)) {
     const row = document.createElement("div");
-    row.className = "result";
+    row.className = "resultRow";
 
     const ref = makeLink(v);
 
     const snippet = document.createElement("span");
-    snippet.innerHTML = " — " + highlight(v.text, termRaw);
+    snippet.className = "snippet";
+    snippet.innerHTML = " — " + highlightHits(v.text, termRaw);
 
     row.appendChild(ref);
     row.appendChild(snippet);
@@ -101,10 +119,15 @@ function searchText() {
 }
 
 function clearSearch() {
-  const input = document.getElementById("searchTerm");
-  const resultsEl = document.getElementById("results");
+  const input = $("searchTerm");
+  const resultsEl = $("results");
   if (input) input.value = "";
   if (resultsEl) resultsEl.innerHTML = "";
 }
 
+// 👇 CRITICAL: make functions available to onclick= handlers even if script is type="module"
+window.searchText = searchText;
+window.clearSearch = clearSearch;
+
+// Load data
 document.addEventListener("DOMContentLoaded", loadAllBooks);
