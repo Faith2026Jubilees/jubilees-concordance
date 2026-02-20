@@ -7,7 +7,8 @@ function getQueryParams() {
   const book = params.get("book");
   const chapter = Number(params.get("chapter"));
   const verse = Number(params.get("verse"));
-  return { book, chapter, verse };
+  const q = (params.get("q") || "").trim();
+  return { book, chapter, verse, q };
 }
 
 function cleanText(t) {
@@ -32,6 +33,20 @@ async function safeFetchJson(path, defaultBook) {
     console.warn("Skipping:", path, e);
     return [];
   }
+
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, ch => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[ch]));
+}
+
+function highlightHits(text, q) {
+  const safe = escapeHtml(text);
+  if (!q) return safe;
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(escaped, "ig");
+  return safe.replace(re, m => `<mark class="hit">${escapeHtml(m)}</mark>`);
 }
 
 async function loadChapter() {
@@ -46,7 +61,7 @@ async function loadChapter() {
 
   resultsDiv.textContent = "Loading…";
 
-  const { book, chapter, verse } = getQueryParams();
+  const { book, chapter, verse, q } = getQueryParams();
   if (!book || !chapter) {
     resultsDiv.textContent = "Missing URL info (book/chapter).";
     return;
@@ -80,8 +95,11 @@ async function loadChapter() {
 
     if (v.verse === verse) verseDiv.classList.add("verseTarget");
 
-    verseDiv.innerHTML = `<strong>${book} ${chapter}:${v.verse}</strong> ${cleanText(v.text)}`;
-    resultsDiv.appendChild(verseDiv);
+    verseDiv.innerHTML =
+  `<strong>${book} ${chapter}:${v.verse}</strong> ` +
+  highlightHits(cleanText(v.text), q);
+
+resultsDiv.appendChild(verseDiv);
   }
 }
 
